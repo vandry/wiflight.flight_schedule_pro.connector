@@ -1,0 +1,63 @@
+#!/usr/bin/python
+
+import sys
+import os
+import fcntl
+import errno
+import traceback
+
+import fsp_email
+
+MAILDIR = os.path.expanduser("~/Mail")
+
+def process_dir(mailbox, prefix, it):
+    any_errors = False
+    for filename in it:
+        fullpath = os.path.join(prefix, filename)
+        lockfile_path = os.path.join(prefix, "..", "lock." + filename)
+        try:
+            with open(lockfile_path, "w") as lockfile:
+                try:
+                    fcntl.lockf(lockfile.fileno(), fcntl.LOCK_EX|fcntl.LOCK_NB)
+                except IOError:
+                    continue
+                else:
+                    with open(fullpath) as f:
+                        fsp_email.process_file(mailbox, f)
+        except Exception, e:
+            print >>sys.stderr, "Error while processing %s in mailbox %s:" % (filename, mailbox)
+            traceback.print_exc()
+            any_errors = True
+        else:
+            try:
+                os.unlink(lockfile_path)
+            except Exception:
+                pass
+            try:
+                os.unlink(fullpath)
+            except Exception:
+                pass
+    return any_errors
+
+def main():
+    any_errors = False
+    mblist = sys.argv[1:]
+    if not mblist:
+        mblist = os.listdir(MAILDIR)
+    for mailbox in mblist:
+        for dirname in ('new', 'cur'):
+            path = os.path.join(MAILDIR, mailbox, dirname)
+            try:
+                it = os.listdir(path)
+            except OSError, e:
+                traceback.print_exc()
+                print >>sys.stderr, "flight schedule pro email receiver: %s may not be a Maildir" % (mailbox,)
+                any_errors = True
+            else:
+                if process_dir(mailbox, path, it):
+                    any_errors = True
+    if any_errors:
+        sys.exit(1)
+
+if __name__ == '__main__':
+    main()

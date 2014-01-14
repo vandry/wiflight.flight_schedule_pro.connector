@@ -1,0 +1,36 @@
+#!/bin/sh
+
+host="$1"
+user="$2"
+
+if [ fspnotify.wi-flight.net != "$host" ]; then
+	echo "Mail for incorrect domain routed to Wi-Flight script" >&2
+	exit 68
+fi
+
+filtered_user=$(echo "$user" | tr -cd '0-9a-zA-Z_=;-')
+if [ "x$filtered_user" != "x$user" ]; then
+	echo "Insecure username" >&2
+	exit 67
+fi
+
+MAILDIR=$HOME/Mail
+export MAILDIR
+
+if [ ! -d "$MAILDIR/$user" ]; then
+	mkdir -p "$MAILDIR"
+	mkdir "$MAILDIR/$user"
+	mkdir "$MAILDIR/$user/tmp"
+	mkdir "$MAILDIR/$user/new"
+	mkdir "$MAILDIR/$user/cur"
+fi
+
+set -e
+procmail -a "$user"
+
+(
+	set +e
+	cd
+	./flight_schedule_pro_connector "$user"
+	exit 0
+) </dev/null >>/dev/null 2>&1
