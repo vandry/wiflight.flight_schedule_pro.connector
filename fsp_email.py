@@ -64,9 +64,9 @@ class FSPConnectorConfig(object):
         if self.password is None:
             raise ValueError("Missing Wi-Flight API password")
 
-def parse_bizarre_date(tz, m):
-    """Given a regex match object that matched the bizarre
-    non-standard date and time format used by Flight Schedule Pro,
+def parse_date(tz, m):
+    """Given a regex match object that matched the
+    date and time format used by Flight Schedule Pro,
     return a datetime object"""
     h = int(m.group(4))
     if m.group(6) == 'P':
@@ -74,7 +74,7 @@ def parse_bizarre_date(tz, m):
     try:
         local = datetime.datetime(
             int(m.group(3)),
-            int(m.group(1)), int(m.group(2)),  # watch confusing order!!
+            int(m.group(2)), int(m.group(1)),
             h, int(m.group(5))
         )
     except ValueError:
@@ -141,11 +141,11 @@ def process_message(config, msg):
                     continue
                 m = re.match(_RE_start, thing)
                 if m:
-                    start = parse_bizarre_date(config.tz, m)
+                    start = parse_date(config.tz, m)
                     continue
                 m = re.match(_RE_end, thing)
                 if m:
-                    end = parse_bizarre_date(config.tz, m)
+                    end = parse_date(config.tz, m)
                     continue
                 m = re.match(_RE_resv_id, thing)
                 if m:
