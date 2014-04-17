@@ -17,8 +17,8 @@ _RE_crew1 = re.compile("^\s*Pilot: (.+?)\s*$")
 _RE_crew2 = re.compile("^\s*Instructor: (.+?)\s*$")
 _RE_crew3 = re.compile("^\s*For: (.+?)\s*$")
 _RE_aircraft = re.compile("^\s*Aircraft: .*?(\S+)\s*$")
-_RE_start = re.compile("^\s*Start Time: (\d+)/(\d+)/(\d+) (\d+):(\d+) ([AP])M\s*$")
-_RE_end = re.compile("^\s*End Time: (\d+)/(\d+)/(\d+) (\d+):(\d+) ([AP])M\s*$")
+_RE_start = re.compile("^\s*Resource Start Time: (\d+)/(\d+)/(\d+) (\d+):(\d+) ([AP])M\s*$")
+_RE_end = re.compile("^\s*Resource End Time: (\d+)/(\d+)/(\d+) (\d+):(\d+) ([AP])M\s*$")
 _RE_resv_id = re.compile("^\s*Reservation Id: (\d+)\s*$")
 
 class UnusableEmail(Exception):
