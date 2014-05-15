@@ -69,6 +69,8 @@ def parse_date(tz, m):
     date and time format used by Flight Schedule Pro,
     return a datetime object"""
     h = int(m.group(4))
+    if h == 12:
+        h = 0
     if m.group(6) == 'P':
         h += 12
     try:
