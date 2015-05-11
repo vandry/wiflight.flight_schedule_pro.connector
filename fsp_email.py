@@ -97,6 +97,10 @@ def process_message(config, msg):
     display, sender = email.utils.parseaddr(msg['From'])
     if sender != 'notify@flightschedulepro.com':
         raise UnusableEmail("Email does not come from notify@flightschedulepro.com")
+    if msg.is_multipart() and msg.get_content_subtype() == 'alternative':
+        for part in msg.get_payload():
+            if part.get_content_type() == 'text/html':
+                msg = part
     if msg.get_content_type() != 'text/html':
         raise UnusableEmail("Email was expected to be in HTML format but is not")
     try:
