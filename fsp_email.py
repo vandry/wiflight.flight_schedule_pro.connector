@@ -104,7 +104,7 @@ def process_message(config, msg):
     if msg.get_content_type() != 'text/html':
         raise UnusableEmail("Email was expected to be in HTML format but is not")
     try:
-        top = BeautifulSoup(msg.get_payload())
+        top = BeautifulSoup(msg.get_payload(decode=True))
     except Exception, e:
         raise UnusableEmail("HTML parsing failed: " + str(e))
     if not top.body:
