@@ -44,7 +44,7 @@ def get_crew(session, exc, displayname):
             else:
                 extra_fleet = True
     if found is not None:
-        return found.username, found.dbdomain
+        return found.username, found.dbdomain, found.useruuid
     if extra_fleet:
         raise exc("Entry with name %r must be created in CrewDb but I have access to more than one fleet and I can't decide which one to use." % (
             displayname,
@@ -59,7 +59,7 @@ def get_crew(session, exc, displayname):
     newuser.name = displayname
     newuser.dbdomain = domain
     newuser.save(session)
-    return username, domain
+    return username, domain, None
 
 def process_reservation_notice(config, resv, exc, isdelete=False):
     if not resv.start or not resv.end:
@@ -88,17 +88,24 @@ def process_reservation_notice(config, resv, exc, isdelete=False):
         by_domain = {}
         crew_usernames = []
         for member in resv.crew:
-            username, dbdomain = get_crew(session, exc, member)
+            username, dbdomain, useruuid = get_crew(session, exc, member)
             if dbdomain not in by_domain:
-                by_domain[dbdomain] = []
-            by_domain[dbdomain].append(username)
+                by_domain[dbdomain] = [], []
+            if useruuid is None:
+                # legacy CrewDb entry, reserve by username
+                by_domain[dbdomain][0].append(username)
+            else:
+                # newer CrewDb entry, reserve by UUID
+                by_domain[dbdomain][1].append(useruuid)
 
         for resv_domain, crewlist in by_domain.iteritems():
             r = wiflight.APIReservation('flight-schedule-pro-%d@%s' % (
                 resv.reservation_id, resv_domain
             ))
-            for x in crewlist:
+            for x in crewlist[0]:
                 r.crew.add(x)
+            for x in crewlist[1]:
+                r.crew_by_uuid.add(x)
             r.domain = 'flight-schedule-pro-connector'
             r.start = resv.start
             r.end = resv.end
