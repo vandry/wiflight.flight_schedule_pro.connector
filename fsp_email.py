@@ -117,8 +117,8 @@ def process_message(config, msg):
         for part in msg.get_payload():
             if part.get_content_type() == 'text/plain':
                 msg = part
-    if msg.get_content_type() != 'text/html':
-        raise UnusableEmail("Email was expected to be in HTML or multipart format but is not")
+    if msg.get_content_type() != 'text/plain':
+        raise UnusableEmail("Email was expected to be in plain format but is not")
     try:
         top = BeautifulSoup(msg.get_payload(decode=True))
     except Exception, e:
