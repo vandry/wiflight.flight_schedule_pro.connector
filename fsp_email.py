@@ -129,14 +129,11 @@ def process_message(config, msg):
             thing = thing.strip()
             if 'A reservation has been cancelled.' in thing:
                 isdelete = True
-            elif 'are the current reservation details' in thing:
-                # This means an edited reservation. Everything that precedes
-                # pertains to the old contents of the reservation, so wipe
-                # it out.
-                crew = []
-                start = None
-                end = None
-                tail = None
+            elif 'here are the previous details' in thing:
+                # This means an edited reservation. Everything to come
+                # pertains to the old contents of the reservation, so
+                # ignore it
+                break
             else:
                 m = re.match(_RE_crew1, thing)
                 if m:
