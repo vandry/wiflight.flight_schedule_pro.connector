@@ -13,13 +13,13 @@ import pytz
 import subprocess
 import fsp_reservation
 
-_RE_crew1 = re.compile("^\s*Pilot: (.+?)\s*$")
-_RE_crew2 = re.compile("^\s*Instructor: (.+?)\s*$")
-_RE_crew3 = re.compile("^\s*For: (.+?)\s*$")
-_RE_aircraft = re.compile("^\s*Aircraft: .*?(\S+)\s*$")
-_RE_start = re.compile("^\s*Resource Start Time: (\d+)/(\d+)/(\d+) (\d+):(\d+) ([AP])M\s*$")
-_RE_end = re.compile("^\s*Resource End Time: (\d+)/(\d+)/(\d+) (\d+):(\d+) ([AP])M\s*$")
-_RE_resv_id = re.compile("^\s*Reservation Id: (\d+)\s*$")
+_RE_crew1 = re.compile("^\s*\*For: (.+?)\*\s*$")
+_RE_crew2 = re.compile("^\s*\*Instructor: (.+?)\*\s*$")
+_RE_crew3 = re.compile("^\s*\*For: (.+?)\*\s*$")
+_RE_aircraft = re.compile("^\s*\*Aircraft: .*?(\S+)\*\s*$")
+_RE_start = re.compile("^\s*Start Time: \w+ (\w+) (\d+), (\d+) (\d+):(\d+) ([AP])M\s*$")
+_RE_end = re.compile("^\s*End Time: \w+ (\w+) (\d+), (\d+) (\d+):(\d+) ([AP])M\s*$")
+_RE_resv_id = re.compile("^\s*Reservation ID: (\d+)\s*$")
 
 class UnusableEmail(Exception):
     pass
@@ -76,7 +76,7 @@ def parse_date(tz, m):
     try:
         local = datetime.datetime(
             int(m.group(3)),
-            int(m.group(2)), int(m.group(1)),
+            int(monthToNum(m.group(1))), int(m.group(2)),
             h, int(m.group(5))
         )
     except ValueError:
@@ -86,6 +86,22 @@ def parse_date(tz, m):
     except pytz.exceptions.InvalidTimeError, e:
         raise UnusableEmail("Unable to convert %s to UTC: %r" % (local, e))
     return z.replace(tzinfo=None)
+
+def monthToNum(shortMonth):
+    return{
+            'Jan' : 1,
+            'Feb' : 2,
+            'Mar' : 3,
+            'Apr' : 4,
+            'May' : 5,
+            'Jun' : 6,
+            'Jul' : 7,
+            'Aug' : 8,
+            'Sep' : 9,
+            'Oct' : 10,
+            'Nov' : 11,
+            'Dec' : 12
+    }[shortMonth]
 
 def process_message(config, msg):
     crew = []
@@ -99,26 +115,19 @@ def process_message(config, msg):
         raise UnusableEmail("Email does not come from notify@flightschedulepro.com")
     if msg.is_multipart() and msg.get_content_subtype() == 'alternative':
         for part in msg.get_payload():
-            if part.get_content_type() == 'text/html':
+            if part.get_content_type() == 'text/plain':
                 msg = part
     if msg.get_content_type() != 'text/html':
-        raise UnusableEmail("Email was expected to be in HTML format but is not")
+        raise UnusableEmail("Email was expected to be in HTML or multipart format but is not")
     try:
         top = BeautifulSoup(msg.get_payload(decode=True))
     except Exception, e:
-        raise UnusableEmail("HTML parsing failed: " + str(e))
-    if not top.body:
-        raise UnusableEmail("HTML message has no body!")
-    table = top.body.find('table', attrs={'class' : 'TableBodys'})
-    if not table:
-        raise UnusableEmail("Cannot find the data (\"TableBodys\") in the message")
-    td = table.find('td', attrs={'class' : 'TextStandard'})
-    if not td:
-        raise UnusableEmail("Cannot find the data (\"TextStandard\") in the message")
+        raise UnusableEmail("E-mail parsing failed: " + str(e))
     isdelete = False
-    for thing in td:
+    for thing in top.getText().splitlines():
         if isinstance(thing, basestring):
-            if 'following reservation has been deleted' in thing:
+            thing = thing.strip()
+            if 'A reservation has been cancelled.' in thing:
                 isdelete = True
             elif 'are the current reservation details' in thing:
                 # This means an edited reservation. Everything that precedes
