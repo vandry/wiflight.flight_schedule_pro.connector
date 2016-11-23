@@ -5,7 +5,6 @@ import email.utils
 from email.mime.text import MIMEText
 import email.mime.multipart
 import email.mime.message
-from BeautifulSoup import BeautifulSoup
 import re
 import os
 import datetime
@@ -13,13 +12,13 @@ import pytz
 import subprocess
 import fsp_reservation
 
-_RE_crew1 = re.compile("^\s*\*For: (.+?)\*\s*$")
-_RE_crew2 = re.compile("^\s*\*Instructor: (.+?)\*\s*$")
-_RE_crew3 = re.compile("^\s*\*For: (.+?)\*\s*$")
-_RE_aircraft = re.compile("^\s*\*Aircraft: .*?(\S+)\*\s*$")
-_RE_start = re.compile("^\s*Start Time: \w+ (\w+) (\d+), (\d+) (\d+):(\d+) ([AP])M\s*$")
-_RE_end = re.compile("^\s*End Time: \w+ (\w+) (\d+), (\d+) (\d+):(\d+) ([AP])M\s*$")
-_RE_resv_id = re.compile("^\s*Reservation ID: (\d+)\s*$")
+_RE_crew1 = re.compile(r"^\s*\*For: (.+?)\*\s*$")
+_RE_crew2 = re.compile(r"^\s*\*Instructor: (.+?)\*\s*$")
+_RE_crew3 = re.compile(r"^\s*\*For: (.+?)\*\s*$")
+_RE_aircraft = re.compile(r"^\s*\*Aircraft: .*?(\S+)\*\s*$")
+_RE_start = re.compile(r"^\s*Start Time: \w+ (\w+) (\d+), (\d+) (\d+):(\d+) ([AP])M\s*$")
+_RE_end = re.compile(r"^\s*End Time: \w+ (\w+) (\d+), (\d+) (\d+):(\d+) ([AP])M\s*$")
+_RE_resv_id = re.compile(r"^\s*Reservation ID: (\d+)\s*$")
 
 class UnusableEmail(Exception):
     pass
@@ -76,7 +75,7 @@ def parse_date(tz, m):
     try:
         local = datetime.datetime(
             int(m.group(3)),
-            int(monthToNum(m.group(1))), int(m.group(2)),
+            int(month_to_num(m.group(1))), int(m.group(2)),
             h, int(m.group(5))
         )
     except ValueError:
@@ -87,21 +86,21 @@ def parse_date(tz, m):
         raise UnusableEmail("Unable to convert %s to UTC: %r" % (local, e))
     return z.replace(tzinfo=None)
 
-def monthToNum(shortMonth):
-    return{
-            'Jan' : 1,
-            'Feb' : 2,
-            'Mar' : 3,
-            'Apr' : 4,
-            'May' : 5,
-            'Jun' : 6,
-            'Jul' : 7,
-            'Aug' : 8,
-            'Sep' : 9,
-            'Oct' : 10,
-            'Nov' : 11,
-            'Dec' : 12
-    }[shortMonth]
+def month_to_num(short_month):
+    return {
+            'Jan': 1,
+            'Feb': 2,
+            'Mar': 3,
+            'Apr': 4,
+            'May': 5,
+            'Jun': 6,
+            'Jul': 7,
+            'Aug': 8,
+            'Sep': 9,
+            'Oct': 10,
+            'Nov': 11,
+            'Dec': 12
+    }[short_month]
 
 def process_message(config, msg):
     crew = []
@@ -120,11 +119,11 @@ def process_message(config, msg):
     if msg.get_content_type() != 'text/plain':
         raise UnusableEmail("Email was expected to be in plain format but is not")
     try:
-        top = BeautifulSoup(msg.get_payload(decode=True))
+        top = msg.get_payload(decode=True)
     except Exception, e:
         raise UnusableEmail("E-mail parsing failed: " + str(e))
     isdelete = False
-    for thing in top.getText().splitlines():
+    for thing in top.splitlines():
         if isinstance(thing, basestring):
             thing = thing.strip()
             if 'A reservation has been cancelled.' in thing:
